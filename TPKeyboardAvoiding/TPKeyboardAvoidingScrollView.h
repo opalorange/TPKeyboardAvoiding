@@ -10,6 +10,7 @@
 #import "UIScrollView+TPKeyboardAvoidingAdditions.h"
 
 @interface TPKeyboardAvoidingScrollView : UIScrollView <UITextFieldDelegate, UITextViewDelegate>
+@property (nonatomic) BOOL adjustsForHorizontalScrolling;
 - (void)contentSizeToFit;
 - (BOOL)focusNextTextField;
 - (void)scrollToActiveTextField;

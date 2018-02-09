@@ -104,10 +104,11 @@ static const int kStateKey;
             self.contentInset = [self TPKeyboardAvoiding_contentInsetForKeyboard];
             
             CGFloat viewableHeight = self.bounds.size.height - self.contentInset.top - self.contentInset.bottom;
-            [self setContentOffset:CGPointMake(self.contentOffset.x,
-                                               [self TPKeyboardAvoiding_idealOffsetForView:firstResponder
-                                                                     withViewingAreaHeight:viewableHeight])
+            CGPoint idealOffset = [self TPKeyboardAvoiding_idealOffsetForView:firstResponder
+                                                        withViewingAreaHeight:viewableHeight];
+            [self setContentOffset:idealOffset
                           animated:NO];
+
         }
         
         self.scrollIndicatorInsets = self.contentInset;
@@ -215,10 +216,9 @@ static const int kStateKey;
     
     CGFloat visibleSpace = self.bounds.size.height - self.contentInset.top - self.contentInset.bottom;
     
-    CGPoint idealOffset
-        = CGPointMake(self.contentOffset.x,
-                      [self TPKeyboardAvoiding_idealOffsetForView:firstResponder
-                                            withViewingAreaHeight:visibleSpace]);
+    CGPoint idealOffset = [self TPKeyboardAvoiding_idealOffsetForView:firstResponder
+                                                withViewingAreaHeight:visibleSpace];
+
 
     // Ordinarily we'd use -setContentOffset:animated:YES here, but it interferes with UIScrollView
     // behavior which automatically ensures that the first responder is within its bounds
@@ -343,7 +343,7 @@ static const int kStateKey;
     return newInset;
 }
 
--(CGFloat)TPKeyboardAvoiding_idealOffsetForView:(UIView *)view withViewingAreaHeight:(CGFloat)viewAreaHeight {
+-(CGPoint)TPKeyboardAvoiding_idealOffsetForView:(UIView *)view withViewingAreaHeight:(CGFloat)viewAreaHeight {
     CGSize contentSize = self.contentSize;
     __block CGFloat offset = 0.0;
 
@@ -418,7 +418,20 @@ static const int kStateKey;
         offset = -contentInset.top;
     }
 
-    return offset;
+    if ([self isKindOfClass:[TPKeyboardAvoidingScrollView class]]) {
+        TPKeyboardAvoidingScrollView *tpKBAvoidingScrollView = (id)self;
+        if (tpKBAvoidingScrollView.adjustsForHorizontalScrolling) {
+            CGFloat viewableWidth = self.bounds.size.width - self.contentInset.left - self.contentInset.right;
+            //If subview is fully contained in the viewable area, don't move horizontally
+            if (subviewRect.origin.x > self.contentOffset.x && subviewRect.origin.x + subviewRect.size.width < self.contentOffset.x + viewableWidth) {
+                return CGPointMake(self.contentOffset.x, offset);
+            }
+            CGFloat horizontalOffset = MAX(subviewRect.origin.x - kMinimumScrollOffsetPadding, 0);
+            return CGPointMake(horizontalOffset, offset);
+        }
+    }
+    return CGPointMake(self.contentOffset.x, offset);
+
 }
 
 - (void)TPKeyboardAvoiding_initializeView:(UIView*)view {
